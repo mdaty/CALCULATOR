@@ -1,0 +1,14 @@
+{
+  "name": "Calc — Amber Calculator",
+  "short_name": "Calc",
+  "description": "A minimal calculator with a retro amber LED display.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#17161A",
+  "theme_color": "#17161A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
