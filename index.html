@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Calc</title>
+<meta name="description" content="A minimal calculator with a retro amber LED display.">
+<meta name="theme-color" content="#17161A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calc">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#17161A;
+    --panel:#201F26;
+    --display-bg:#100F13;
+    --key-num:#2B2A33;
+    --key-num-hi:#35333e;
+    --key-func:#38363F;
+    --key-func-hi:#454249;
+    --accent:#F2A93B;
+    --accent-hi:#f6bc5c;
+    --accent-text:#17161A;
+    --glow:#FFB74D;
+    --muted:#8A8794;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:radial-gradient(circle at 50% 0%, #201f26, #121116 70%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Manrope',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    padding:20px;
+  }
+  .calculator{
+    width:100%;
+    max-width:360px;
+    background:var(--panel);
+    border-radius:32px;
+    padding:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .display{
+    background:var(--display-bg);
+    border-radius:var(--radius);
+    padding:22px 20px 18px;
+    margin-bottom:16px;
+    text-align:right;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,0.6);
+    min-height:104px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    overflow:hidden;
+  }
+  .expression{
+    font-family:'Space Mono',monospace;
+    font-size:15px;
+    color:var(--muted);
+    min-height:20px;
+    letter-spacing:0.5px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .result{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:44px;
+    color:var(--glow);
+    text-shadow:0 0 6px rgba(255,183,77,0.55), 0 0 18px rgba(255,183,77,0.25);
+    line-height:1.15;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    transition:opacity 0.08s ease;
+  }
+  .result.pulse{ animation:flicker 0.22s ease; }
+  @keyframes flicker{
+    0%{ opacity:0.4; text-shadow:0 0 2px rgba(255,183,77,0.3); }
+    100%{ opacity:1; text-shadow:0 0 6px rgba(255,183,77,0.55), 0 0 18px rgba(255,183,77,0.25); }
+  }
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+  }
+  button{
+    font-family:'Manrope',sans-serif;
+    font-weight:700;
+    font-size:20px;
+    border:none;
+    border-radius:16px;
+    padding:0;
+    height:64px;
+    cursor:pointer;
+    color:#EFEDF2;
+    background:var(--key-num);
+    box-shadow:0 2px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+    transition:transform 0.06s ease, box-shadow 0.06s ease, background 0.1s ease;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  button:active{
+    transform:translateY(2px) scale(0.98);
+    box-shadow:0 0 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  button:hover{ background:var(--key-num-hi); }
+  .fn{ background:var(--key-func); color:#EFEDF2; font-size:18px; }
+  .fn:hover{ background:var(--key-func-hi); }
+  .op{ background:transparent; color:var(--accent); font-size:26px; border:1.5px solid rgba(242,169,59,0.4); }
+  .op:hover{ background:rgba(242,169,59,0.08); }
+  .op.active{ background:var(--accent); color:var(--accent-text); }
+  .equals{ background:var(--accent); color:var(--accent-text); font-size:24px; }
+  .equals:hover{ background:var(--accent-hi); }
+  .wide{ grid-column:span 2; }
+  .keypad .zero{ text-align:left; padding-left:26px; }
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    margin-top:16px;
+    letter-spacing:0.5px;
+  }
+</style>
+</head>
+<body>
+  <div>
+    <div class="calculator">
+      <div class="display">
+        <div class="expression" id="expression">&nbsp;</div>
+        <div class="result" id="result">0</div>
+      </div>
+      <div class="keypad">
+        <button class="fn" data-action="clear">AC</button>
+        <button class="fn" data-action="sign">±</button>
+        <button class="fn" data-action="percent">%</button>
+        <button class="op" data-op="÷">÷</button>
+
+        <button data-digit="7">7</button>
+        <button data-digit="8">8</button>
+        <button data-digit="9">9</button>
+        <button class="op" data-op="×">×</button>
+
+        <button data-digit="4">4</button>
+        <button data-digit="5">5</button>
+        <button data-digit="6">6</button>
+        <button class="op" data-op="−">−</button>
+
+        <button data-digit="1">1</button>
+        <button data-digit="2">2</button>
+        <button data-digit="3">3</button>
+        <button class="op" data-op="+">+</button>
+
+        <button class="wide zero" data-digit="0">0</button>
+        <button data-action="decimal">.</button>
+        <button class="equals" data-action="equals">=</button>
+      </div>
+    </div>
+    <footer>ADD TO HOME SCREEN FOR APP MODE</footer>
+  </div>
+
+<script>
+(function(){
+  const resultEl = document.getElementById('result');
+  const exprEl = document.getElementById('expression');
+  const keypad = document.querySelector('.keypad');
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let overwrite = true;
+
+  function formatNumber(str){
+    if(str === 'Error') return str;
+    let neg = str.startsWith('-');
+    let s = neg ? str.slice(1) : str;
+    let [int, dec] = s.split('.');
+    if(int === '') int = '0';
+    let intFmt = int.length <= 15 ? Number(int).toLocaleString('en-US') : int;
+    let out = (neg ? '-' : '') + intFmt;
+    if(dec !== undefined) out += '.' + dec;
+    return out;
+  }
+
+  function render(){
+    resultEl.textContent = formatNumber(current);
+    exprEl.textContent = (previous !== null && operator)
+      ? `${formatNumber(previous)} ${operator}`
+      : '\u00A0';
+    resultEl.classList.remove('pulse');
+    void resultEl.offsetWidth;
+    resultEl.classList.add('pulse');
+    document.querySelectorAll('.op').forEach(b=>{
+      b.classList.toggle('active', operator && b.dataset.op === operator && overwrite);
+    });
+  }
+
+  function inputDigit(d){
+    if(overwrite){ current = d === '.' ? '0.' : d; overwrite = false; return; }
+    if(d === '.' ){ if(!current.includes('.')) current += '.'; return; }
+    if(current === '0'){ current = d; return; }
+    if(current.replace('-','').replace('.','').length >= 15) return;
+    current += d;
+  }
+
+  function compute(a, b, op){
+    a = parseFloat(a); b = parseFloat(b);
+    let r;
+    switch(op){
+      case '+': r = a + b; break;
+      case '−': r = a - b; break;
+      case '×': r = a * b; break;
+      case '÷': r = b === 0 ? NaN : a / b; break;
+      default: return b;
+    }
+    if(Number.isNaN(r)) return 'Error';
+    r = parseFloat(r.toPrecision(12));
+    return r.toString();
+  }
+
+  function chooseOperator(op){
+    if(current === 'Error') return;
+    if(operator && !overwrite){
+      current = compute(previous, current, operator);
+    }
+    previous = current;
+    operator = op;
+    overwrite = true;
+  }
+
+  function equals(){
+    if(operator === null || overwrite) return;
+    current = compute(previous, current, operator);
+    operator = null;
+    previous = null;
+    overwrite = true;
+  }
+
+  function clearAll(){
+    current = '0'; previous = null; operator = null; overwrite = true;
+  }
+
+  function toggleSign(){
+    if(current === '0' || current === 'Error') return;
+    current = current.startsWith('-') ? current.slice(1) : '-' + current;
+  }
+
+  function percent(){
+    if(current === 'Error') return;
+    current = (parseFloat(current) / 100).toString();
+  }
+
+  keypad.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    if(btn.dataset.digit !== undefined) inputDigit(btn.dataset.digit);
+    else if(btn.dataset.op) chooseOperator(btn.dataset.op);
+    else if(btn.dataset.action === 'clear') clearAll();
+    else if(btn.dataset.action === 'sign') toggleSign();
+    else if(btn.dataset.action === 'percent') percent();
+    else if(btn.dataset.action === 'decimal') inputDigit('.');
+    else if(btn.dataset.action === 'equals') equals();
+    render();
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    if(e.key >= '0' && e.key <= '9') inputDigit(e.key);
+    else if(e.key === '.') inputDigit('.');
+    else if(e.key === '+') chooseOperator('+');
+    else if(e.key === '-') chooseOperator('−');
+    else if(e.key === '*') chooseOperator('×');
+    else if(e.key === '/') { e.preventDefault(); chooseOperator('÷'); }
+    else if(e.key === 'Enter' || e.key === '=') equals();
+    else if(e.key === 'Escape') clearAll();
+    else if(e.key === '%') percent();
+    else if(e.key === 'Backspace'){
+      if(overwrite) return;
+      current = current.length > 1 ? current.slice(0,-1) : '0';
+      if(current === '-') current = '0';
+    } else return;
+    render();
+  });
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
